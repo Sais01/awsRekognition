@@ -66,6 +66,46 @@ app.post("/detectarLabels", upload.single('myfile'),function(request, response) 
 
 });
 
+app.post("/detectarLabelS3",function(request, response) {
+  aws.config.update({
+    region: process.env.AWS_REGION
+  });
+  
+  var rekognition = new aws.Rekognition(); 
+
+  var nomeArquivo = request.body.foto; //nome do arquivo que está no S3 e "foto" é o nome do campo que está no form
+  var params = {
+    Image: {
+      S3Object:{
+        Bucket: process.env.AWS_BUCKET,
+        Name: nomeArquivo
+      }
+    },
+    MaxLabels: 50,
+    MinConfidence: 85
+  };
+
+  rekognition.detectLabels(params, function(err, data) {
+    if(err){
+      console.log(err, err.stack);
+    }else{
+      console.log(data);
+      
+      var table = "<table border=1>";
+      table += "<tr><th>Nome</th><th>Confiança</th></tr>";
+      for(var i = 0; i < data.Labels.length; i++){
+        table += "<tr><td>" + data.Labels[i].Name + "</td><td>" + data.Labels[i].Confidence + "</td></tr>";
+      }
+      table+= "</table>";
+
+      response.send(table);
+
+    }
+  });
+
+});
+
+
 app.post("/detectarModeracao", upload.single('myfile_moderar'),function(request, response) {
   aws.config.update({
     region: process.env.AWS_REGION
