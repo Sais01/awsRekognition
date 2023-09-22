@@ -66,6 +66,81 @@ app.post("/detectarLabels", upload.single('myfile'),function(request, response) 
 
 });
 
+app.post("/detectarModeracao", upload.single('myfile_moderar'),function(request, response) {
+  aws.config.update({
+    region: process.env.AWS_REGION
+  });
+  
+  var rekognition = new aws.Rekognition(); 
+
+  var arquivo = request.file.buffer;
+
+  var params = {
+    Image: {
+      Bytes: arquivo
+    },
+    MinConfidence: 1
+  };
+
+  rekognition.detectModerationLabels(params, function(err, data) {
+    if(err){
+      console.log(err, err.stack);
+    }else{
+      console.log(data);
+      
+      var table = "<table border=1>";
+      table += "<tr><th>Nome</th><th>Confiança</th></tr>";
+      for(var i = 0; i < data.ModerationLabels.length; i++){
+        table += "<tr><td>" + data.ModerationLabels[i].Name + "</td><td>" + data.ModerationLabels[i].Confidence + "</td></tr>";
+      }
+      table+= "</table>";
+
+      response.send(table);
+
+    }
+  });
+
+});
+
+app.post("/analiseFacial", upload.single('myfile_facial'),function(request, response) {
+  aws.config.update({
+    region: process.env.AWS_REGION
+  });
+  
+  var rekognition = new aws.Rekognition(); 
+
+  var arquivo = request.file.buffer;
+
+  var params = {
+    Image: {
+      Bytes: arquivo
+    },
+    Attributes: ['ALL']
+  };
+
+  rekognition.detectFaces(params, function(err, data) {
+    if(err){
+      console.log(err, err.stack);
+    }else{
+      console.log(data);
+      
+      var table = "<table border=1>";
+      table += "<tr><th>Idade mínima</th><th>Idade máxima</th><th>Gênero</th><th>Sentimento</th></tr>";
+      for(var i = 0; i < data.FaceDetails.length; i++){
+        table += "<tr><td>" + data.FaceDetails[i].AgeRange.Low + "</td><td>" + data.FaceDetails[i].AgeRange.High + "</td>";
+        table += "<td>" + data.FaceDetails[i].Gender.Value + "</td>";
+        table += "<td>" + data.FaceDetails[i].Emotions[0].Type + "</td></tr>";
+
+      }
+      table+= "</table>";
+
+      response.send(table);
+
+    }
+  });
+
+});
+
 // listen for requests :)
 const listener = app.listen(process.env.PORT, function() {
   console.log("Your app is listening on port " + listener.address().port);
